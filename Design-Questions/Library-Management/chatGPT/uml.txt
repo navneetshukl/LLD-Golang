@@ -1,0 +1,202 @@
+===========================================
+         LIBRARY MANAGEMENT UML (UPDATED)
+===========================================
+
+This file contains the FULL corrected UML,
+relationships, class definitions, flows,
+and entity descriptions, based on final code
+where TRANSACTION is stored in LIBRARY
+—not inside USER.
+-------------------------------------------
+
+
+===========================================
+                LIBRARY CLASS
+===========================================
+
++--------------------------------+
+|            Library             |
++--------------------------------+
+| - users: map[string]*User      |
+| - books: map[string]*Book      |
+| - transactions: map[string]*Transaction |
++--------------------------------+
+| + AddUser(u *User)             |
+| + AddBook(b *Book)             |
+| + BorrowBook(userID, bookID    |
+|       string) error            |
+| + ReturnBook(userID, bookID    |
+|       string) (*Transaction, error) |
+| + PayFine(userID, txnID string)|
+|       error                    |
+| + GetUser(id string)           |
+| + GetBook(id string)           |
+| + UserHasPendingFine(userID)   |
++--------------------------------+
+
+
+===========================================
+           RELATIONSHIPS (UPDATED)
+===========================================
+
+Library --------> User          (1 to many)
+Library --------> Book          (1 to many)
+Library --------> Transaction   (1 to many)
+
+User -----------> BorrowRecord  (1 to many)
+Book -----------> BorrowRecord  (through BookID)
+
+
+===========================================
+                USER CLASS
+===========================================
+
++---------------------------------+
+|              User               |
++---------------------------------+
+| + ID: string                    |
+| + Name: string                  |
+| + Email: string                 |
+| + Mobile: string                |
+| + Borrowed: map[string]*BorrowRecord |
++---------------------------------+
+| + GetActiveBorrow(bookID string) *BorrowRecord |
++---------------------------------+
+
+IMPORTANT:
+User NO LONGER contains:
+    - Transactions []*Transaction
+    - HasPendingFine()
+Both are now handled by Library.
+
+
+===========================================
+                BOOK CLASS
+===========================================
+
++------------------------------+
+|            Book              |
++------------------------------+
+| + ID: string                 |
+| + Title: string              |
+| + Author: string             |
+| + Status: BookStatus         |
++------------------------------+
+| + IsAvailable() bool         |
+| + ChangeStatus(status)       |
++------------------------------+
+
+
+===========================================
+           BORROW RECORD CLASS
+===========================================
+
++--------------------------------+
+|          BorrowRecord          |
++--------------------------------+
+| + BookID: string               |
+| + BorrowedAt: time.Time        |
+| + ReturnedAt: *time.Time       |
++--------------------------------+
+
+
+===========================================
+            TRANSACTION CLASS
+===========================================
+
+NOW STORED IN LIBRARY (not User)
+
++-----------------------------------+
+|           Transaction              |
++-----------------------------------+
+| + ID: string                       |
+| + UserID: string                   |
+| + BookID: string                   |
+| + Fine: int64                      |
+| + Status: TransactionStatus        |
+| + CreatedAt: time.Time             |
+| + PaidAt: *time.Time               |
++-----------------------------------+
+| + MarkPaid()                       |
++-----------------------------------+
+
+
+===========================================
+               ENUMS
+===========================================
+
+enum BookStatus {
+    Available,
+    Taken
+}
+
+enum TransactionStatus {
+    Pending,
+    Success
+}
+
+
+===========================================
+            BORROW FLOW (UPDATED)
+===========================================
+
+1. User -> Library:
+       BorrowBook(userID, bookID)
+
+2. Library (internal validation):
+       - check user exists
+       - check book exists
+       - check book availability
+       - call UserHasPendingFine(userID)
+
+3. Library -> User:
+       Add BorrowRecord
+
+4. Library -> Book:
+       ChangeStatus(Taken)
+
+5. Library -> User:
+       Success
+
+
+===========================================
+            RETURN FLOW (UPDATED)
+===========================================
+
+1. User -> Library:
+       ReturnBook(userID, bookID)
+
+2. Library -> User:
+       GetActiveBorrow(bookID)
+
+3. Library (logic):
+       - compute days borrowed
+       - if days > 7:
+             fine = (days - 7) * 10
+             create Transaction
+             store in transactions map
+
+4. Library -> Book:
+       ChangeStatus(Available)
+
+5. Library -> User:
+       return Transaction (nil if no fine)
+
+
+===========================================
+           KEY DESIGN IMPROVEMENTS
+===========================================
+
+1. User no longer owns transactions.
+2. Library now owns and manages all fines.
+3. Responsibility separation is clean:
+       - User = holds only personal + borrow info
+       - Book = holds only book data
+       - Transaction = system-wide event
+       - Library = business controller
+4. Fine calculation centralized in Library.
+5. Pending fine check happens in Library.
+
+===========================================
+                END OF FILE
+===========================================

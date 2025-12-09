@@ -1,0 +1,86 @@
+1. Incorrect parameter passing:
+   - Passing structs by value instead of pointer, causing updates to not persist.
+   - Methods like TakeBook and ReturnBook modify only local copies.
+
+2. Book status not persisted:
+   - book.ChangeBookStatus(Taken) is applied on a value copy, not the real book.
+
+3. User stores pointers to temporary book copies:
+   - u.books = append(u.books, &book) stores pointer to a local variable.
+
+4. Incorrect fine calculation:
+   - Used time.Duration incorrectly.
+   - Subtracting 7 incorrectly.
+   - Produces huge fine due to nanoseconds.
+
+5. Parallel arrays (books and date) introduce inconsistency:
+   - No guarantee they stay aligned.
+
+6. ReturnDate is never set in Date struct.
+
+7. Library stores Users and Books as values instead of pointers:
+   - Causes unnecessary copying and lost updates.
+
+8. PayFine() design flawed:
+   - Accepts txnId and bookId even though transaction already contains them.
+   - Should simply operate on receiver.
+
+9. Naming collisions and poor naming:
+   - BookStatus() conflicts with field name.
+   - date field unclear.
+
+10. Missing error handling:
+   - Methods return bool instead of meaningful errors.
+
+11. Unexported struct fields:
+   - name, email, mobile are unexported and cannot be used outside package.
+
+12. BookID and userID used as strings everywhere without validation.
+
+13. Missing essential Library functions:
+   - No GetUserByID, GetBookByID, GetAvailableBooks.
+
+14. Bad modeling: Date should be part of Transaction instead of separate.
+
+15. ReturnBook() does not update book status to Available.
+
+16. Hardcoded transaction ID "txn123":
+   - Every fine uses same ID.
+
+17. User-level mutation of Book status:
+   - User should not modify book; only library should.
+
+18. ToString() methods unnecessary:
+   - Enum conversion can use string(x).
+
+19. Fine calculation happens before marking book status and borrower details.
+
+20. TakeBook() does not validate if user already borrowed same book.
+
+21. ReturnBook() calculates diff > 7 incorrectly:
+   - Used raw Duration instead of days.
+
+22. Missing concurrency safety:
+   - No mutexes or thread-safe access.
+
+23. Missing defensive checks:
+   - User may borrow unlimited books.
+   - No maximum book borrowing limit.
+
+24. No separation of concerns:
+   - Too much logic inside User instead of Library controlling flow.
+
+25. Not production-ready structure:
+   - No interfaces, no error types, no validation.
+
+26. Lack of clear domain boundary:
+   - User modifies Book and Date structs directly.
+
+27. Inconsistent naming styles:
+   - camelCase vs PascalCase inconsistently used.
+
+28. TakeBook() ignores case where book is already taken by user.
+
+29. No tracking of past borrow history after book is returned.
+
+30. ReturnBook() does not delete or close the active borrow record.
