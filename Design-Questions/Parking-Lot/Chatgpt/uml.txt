@@ -1,0 +1,87 @@
++---------------------+
+|      ParkingLot     |           (Service / Coordinator)
++---------------------+
+| - spots: []*ParkingSpot
+| - tickets: map[string]*ParkingTicket
+| - allocator: SpotAllocator
+| - pricing: PricingStrategy
++---------------------+
+| + ParkVehicle(v) (*ParkingTicket, error)
+| + ExitVehicle(ticketID) (int, error)
++---------------------+
+            |
+            | uses
+            v
++---------------------+
+|   SpotAllocator     | <<interface>>
++---------------------+
+| + FindSpot(spots, v) (*ParkingSpot, error)
++---------------------+
+            ^
+            |
++---------------------------+
+| FirstFreeSpotAllocator    |
++---------------------------+
+| + FindSpot(...)           |
++---------------------------+
+
+
+            |
+            | uses
+            v
++---------------------+
+|  PricingStrategy    | <<interface>>
++---------------------+
+| + Calculate(entry, exit) int
++---------------------+
+            ^
+            |
++---------------------+
+|   HourlyPricing     |
++---------------------+
+| + Calculate(...)    |
++---------------------+
+
+
++---------------------+
+|       Vehicle       |        (Entity)
++---------------------+
+| - number: string
+| - type: VehicleType
++---------------------+
+
+
++---------------------+
+|    ParkingSpot      |        (Entity)
++---------------------+
+| - id: int
+| - type: VehicleType
+| - status: SpotStatus
+| - vehicle: *Vehicle
++---------------------+
+| + CanFit(v) bool
+| + Park(v) error
+| + Vacate()
++---------------------+
+
+
++---------------------+
+|   ParkingTicket     |        (Entity)
++---------------------+
+| - id: string
+| - vehicle: *Vehicle
+| - spotID: int
+| - entryTime: time
+| - exitTime: time
++---------------------+
+
+
+
+/////////////////////// RESPONSIBILITY //////////////////////////////////
+
+ParkingLot 1 ---------* ParkingSpot
+ParkingLot 1 ---------* ParkingTicket
+ParkingSpot 1 -------- 1 Vehicle (while occupied)
+
+ParkingLot ---> SpotAllocator (strategy)
+ParkingLot ---> PricingStrategy (strategy)

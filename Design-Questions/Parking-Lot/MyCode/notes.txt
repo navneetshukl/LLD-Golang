@@ -1,0 +1,333 @@
+https://chatgpt.com/s/t_693cfc44103881918f26b3af8ec70797 -> important issues in my code
+
+
+---------------------------------------------------------------
+
+Parking Lot Code Review – Errors & Corrections (Interview View)
+
+This document lists ALL mistakes in the Parking Lot implementation,
+along with:
+- What is wrong
+- Why interviewers care
+- What correction is needed
+- Which software design principle is violated
+
+------------------------------------------------------------
+
+1) Logical bug in spot–vehicle matching (CRITICAL)
+
+Your code:
+if s.GetStatus() == "Free" && ve.GetVehicleType() == string(ve.VehicleType) {
+
+What’s wrong:
+- ve.GetVehicleType() == string(ve.VehicleType) is always true
+- Spot type is never checked
+- Any vehicle can park in any spot
+
+Interview impact:
+- Interviewer will think you don’t understand domain constraints
+
+Correction needed:
+if s.Status == Free && s.SpotType == ve.VehicleType {
+
+Principle violated:
+- Correct domain constraint modeling
+
+
+------------------------------------------------------------
+
+2) ParkingSpot state inconsistency
+
+Your code:
+s.ChangeStatus(Occupied)
+
+But:
+p.Vehicle = v is never called
+
+What’s wrong:
+- Spot marked as occupied
+- Vehicle is not attached to the spot
+- Spot state becomes invalid
+
+Interview impact:
+- Data inconsistency
+- Risk of corrupted system state
+
+Correction needed:
+ParkingSpot should manage its own state:
+
+func (p *ParkingSpot) Park(v *Vehicle) {
+    p.Vehicle = v
+    p.Status = Occupied
+}
+
+Only this method should be used.
+
+Principle violated:
+- Encapsulation
+- State invariants
+
+
+------------------------------------------------------------
+
+3) ParkingManager is a God Object
+
+Your code:
+ParkingManager is responsible for:
+- Finding spots
+- Generating ticket IDs
+- Changing spot state
+- Calculating cost
+- Logging
+- Storing tickets
+
+What’s wrong:
+- Too many responsibilities in one class
+- Hard to maintain and extend
+
+Interview impact:
+- Violates Single Responsibility Principle
+- Strong interview red flag
+
+Correction needed:
+Split responsibilities into:
+- ParkingLot (orchestrator)
+- SpotAllocator (allocation strategy)
+- PricingStrategy (billing logic)
+
+Principle violated:
+- SRP (Single Responsibility Principle)
+- OCP (Open–Closed Principle)
+
+
+------------------------------------------------------------
+
+4) Hard-coded pricing logic
+
+Your code:
+calculateCost := timeParked * 10
+
+What’s wrong:
+- Money calculation tied directly to time.Duration
+- Pricing logic is rigid and non-extensible
+
+Interview impact:
+- Interviewer will ask: “What if pricing changes?”
+
+Correction needed:
+Introduce pricing abstraction:
+
+type PricingStrategy interface {
+    Calculate(entry, exit time.Time) int
+}
+
+Principle violated:
+- Open–Closed Principle
+
+
+------------------------------------------------------------
+
+5) Ticket ID generation is unsafe
+
+Your code:
+vehicleId := ve.VehicleNumber + string(time.Now().UnixMilli())
+
+What’s wrong:
+- Incorrect string conversion
+- Possible ID collision
+- No abstraction for ID generation
+
+Interview impact:
+- Poor production readiness
+
+Correction needed:
+Use safe ID generation:
+fmt.Sprintf("%s-%d", ve.VehicleNumber, time.Now().UnixNano())
+or UUID generator.
+
+Principle violated:
+- Robust identifier handling
+
+
+------------------------------------------------------------
+
+6) No validation on exit
+
+Your code:
+vehicle := p.VehicleTicket[id]
+
+What’s wrong:
+- If ID does not exist, program may panic
+- No error handling
+
+Interview impact:
+- Unsafe production code
+
+Correction needed:
+vehicle, ok := p.VehicleTicket[id]
+if !ok {
+    return false
+}
+
+Principle violated:
+- Defensive programming
+
+
+------------------------------------------------------------
+
+7) ParkingSpot exposes too much internal state
+
+Your code:
+func (p *ParkingSpot) ChangeStatus(st ParkingStatus)
+
+What’s wrong:
+- Any caller can put ParkingSpot in invalid state
+- State invariants are broken
+
+Interview impact:
+- Poor encapsulation
+
+Correction needed:
+Remove ChangeStatus method
+Expose only:
+- Park()
+- Vacate()
+
+Principle violated:
+- Encapsulation
+
+
+------------------------------------------------------------
+
+8) VehicleTicket constructor ignores parameters
+
+Your code:
+func NewVehicleTicket(id, num string, spot int, ti time.Time) *VehicleTicket {
+    EntryTime: time.Now(),
+}
+
+What’s wrong:
+- ti parameter is unused
+- Misleading constructor API
+
+Interview impact:
+- Sloppy API design
+
+Correction needed:
+Either use the parameter or remove it.
+
+Principle violated:
+- Clean API design
+
+
+------------------------------------------------------------
+
+9) No separation between entity and service
+
+Your code:
+ParkingManager owns:
+- Data
+- Business logic
+- Coordination
+
+What’s wrong:
+- No clear entity vs service separation
+
+Interview impact:
+- Weak LLD structure
+
+Correction needed:
+- Entities: Vehicle, ParkingSpot, ParkingTicket
+- Services: ParkingLot, SpotAllocator, PricingStrategy
+
+Principle violated:
+- Layered architecture
+
+
+------------------------------------------------------------
+
+10) No concurrency consideration (Senior-level expectation)
+
+Your code:
+- Shared slices and maps
+- No synchronization
+
+What’s wrong:
+- Two vehicles entering simultaneously can cause race conditions
+
+Interview impact:
+- Interviewer will ask about concurrency
+
+Correction needed:
+Mention (even if not implemented):
+- Mutex around entry/exit
+- Gate-level serialization
+
+Principle violated:
+- Thread safety awareness
+
+
+------------------------------------------------------------
+
+11) String comparison instead of enums
+
+Your code:
+s.GetStatus() == "Free"
+
+What’s wrong:
+- Error-prone string comparison
+- Compiler cannot catch mistakes
+
+Interview impact:
+- Weak type safety
+
+Correction needed:
+s.Status == Free
+
+Principle violated:
+- Type safety
+
+
+------------------------------------------------------------
+
+12) Missing core domain extensions (Expected discussion)
+
+Not a bug, but interviewer will ask:
+- Multiple floors
+- Entry and exit gates
+- Spot size hierarchy
+- Payment modes
+
+Correct interview response:
+“The design supports extension using new entities and strategies without modifying core logic.”
+
+------------------------------------------------------------
+
+Summary for Interview:
+
+What went wrong:
+- Logic bugs
+- SRP violations
+- Hard-coded rules
+- Weak encapsulation
+
+What improved compared to Library Management System:
+- Better entity clarity
+- Cleaner naming
+- Better real-world mapping
+
+What interviewer wants to hear:
+“I identified these issues and refactored using strategies and proper responsibility boundaries.”
+
+------------------------------------------------------------
+
+Final Advice:
+
+If you:
+- Memorize top 5 mistakes
+- Explain why you fixed them
+- Show refactored UML/code
+
+You will stand out in LLD interviews.
+
+------------------------------------------------------------
