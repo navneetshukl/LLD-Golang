@@ -1,0 +1,24 @@
+✅ Basic Requirements
+The parking lot has multiple floors
+Each floor has multiple parking slots
+Parking slots are of different types:
+Two-wheeler
+Car
+Truck
+Each slot can park only one vehicle
+A vehicle has:
+Vehicle number
+Vehicle type
+System should support:
+Park a vehicle
+Unpark a vehicle
+Display available slots per vehicle type
+Parking is done on a first-available-slot basis
+Do not worry about:
+Payments
+Entry/exit gates
+Concurrency
+Database / persistence
+
+
+Link. :  https://chatgpt.com/s/t_6967bedb0430819188d38e366469d33e
